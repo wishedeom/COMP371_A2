@@ -97,6 +97,12 @@ bool PointCollector::isFull() const
 }
 
 
+bool PointCollector::hasMinNumPoints() const
+{
+	return m_points.size() >= m_numPoints + 2;
+}
+
+
 void PointCollector::draw() const
 {
 	glBindVertexArray(pointsVAO);

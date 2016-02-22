@@ -125,8 +125,15 @@ int main() try
 
 		if (pointCollector.isFull() || done)
 		{
-			polyline = pointCollector.hermiteSpline().polyline();
-			break;
+			if (pointCollector.hasMinNumPoints())
+			{
+				polyline = pointCollector.hermiteSpline().polyline();
+				break;
+			}
+			else
+			{
+				done = false;
+			}
 		}
 	}
 
