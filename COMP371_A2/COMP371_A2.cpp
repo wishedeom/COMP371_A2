@@ -86,75 +86,100 @@ Polyline* p_polyline;
 int triangleSpeed = initialSpeed;
 
 // Done collecting points
+bool doneCollecting = false;
+
+// Done program
 bool done = false;
+
+bool reset = false;
 //----------------------------------------------------------------------
 
 int main() try
 {
-	std::cout << "Please enter the number of points to interpolate: (>1)";
-	int numPoints = 0;
-	while (numPoints <= 1)
-	{
-		std::cin >> numPoints;
-	}
-
 	initialize();
 
-	PointCollector pointCollector(numPoints);
-	p_pointCollector = &pointCollector;
-	
-	Polyline polyline;
-	p_polyline = &polyline;
-
-	int i = 0;
-
-	Triangle triangle(0.1f, 0.05f, origin, up);
-
-	while (!glfwWindowShouldClose(window))
+	while (!done)
 	{
-		glfwPollEvents();
-		glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
-		glClear(GL_COLOR_BUFFER_BIT);
+		reset = false;
 
-		// Use the shader program and pass the three transformation matrices to the shader program
-		transformationMatrix = projMatrix * viewMatrix * modelMatrix;
-		shader.use(transformationMatrix);
-
-		pointCollector.draw();
-		glfwSwapBuffers(window);
-
-		if (pointCollector.isFull() || done)
+		std::cout << "Please enter the number of points to interpolate: (>1)";
+		int numPoints = 0;
+		while (numPoints <= 1)
 		{
-			if (pointCollector.hasMinNumPoints())
+			std::cin >> numPoints;
+		}
+
+		PointCollector pointCollector(numPoints);
+		p_pointCollector = &pointCollector;
+
+		Polyline polyline;
+		p_polyline = &polyline;
+
+		int i = 0;
+
+		Triangle triangle(0.1f, 0.05f, origin, up);
+
+		while (!glfwWindowShouldClose(window))
+		{
+			glfwPollEvents();
+			glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
+			glClear(GL_COLOR_BUFFER_BIT);
+
+			// Use the shader program and pass the three transformation matrices to the shader program
+			transformationMatrix = projMatrix * viewMatrix * modelMatrix;
+			shader.use(transformationMatrix);
+
+			pointCollector.draw();
+			glfwSwapBuffers(window);
+
+			if (pointCollector.isFull() || doneCollecting)
 			{
-				polyline = pointCollector.hermiteSpline().polyline();
+				if (pointCollector.hasMinNumPoints())
+				{
+					polyline = pointCollector.hermiteSpline().polyline();
+					break;
+				}
+				else
+				{
+					doneCollecting = false;
+				}
+			}
+
+			if (reset)
+			{
 				break;
 			}
-			else
+		}
+
+		if (reset)
+		{
+			continue;
+		}
+
+		while (!glfwWindowShouldClose(window))
+		{
+			glfwPollEvents();
+			glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
+			glClear(GL_COLOR_BUFFER_BIT);
+
+			// Use the shader program and pass the three transformation matrices to the shader program
+			transformationMatrix = projMatrix * viewMatrix * modelMatrix;
+			shader.use(transformationMatrix);
+
+			polyline.draw();
+
+			triangle.snapTo(polyline, i);
+			i = (i + triangleSpeed) % INT_MAX;
+
+			triangle.draw();
+
+			glfwSwapBuffers(window);
+
+			if (reset)
 			{
-				done = false;
+				break;
 			}
 		}
-	}
-
-	while (!glfwWindowShouldClose(window))
-	{
-		glfwPollEvents();
-		glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
-		glClear(GL_COLOR_BUFFER_BIT);
-
-		// Use the shader program and pass the three transformation matrices to the shader program
-		transformationMatrix = projMatrix * viewMatrix * modelMatrix;
-		shader.use(transformationMatrix);
-
-		polyline.draw();
-
-		triangle.snapTo(polyline, i);
-		i = (i + triangleSpeed) % INT_MAX;
-
-		triangle.draw();
-
-		glfwSwapBuffers(window);
 	}
 
 	glfwTerminate();
@@ -175,9 +200,13 @@ void keyCallback(GLFWwindow *window, const int key, const int scancode, const in
 	{
 	case GLFW_KEY_ESCAPE:
 		glfwSetWindowShouldClose(window, GL_TRUE);	// Escape key exits the application
+		done = true;
+		break;
+	case GLFW_KEY_BACKSPACE:
+		reset = true;
 		break;
 	case GLFW_KEY_ENTER:
-		done = true;
+		doneCollecting = true;
 		break;
 	case GLFW_KEY_LEFT:
 		viewMatrix = glm::translate(viewMatrix, - controlSensitivity * left);
