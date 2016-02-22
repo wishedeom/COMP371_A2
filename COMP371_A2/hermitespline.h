@@ -19,6 +19,5 @@ public:
 	auto segments() const;
 
 	// Returns a polyline approximation of the spline
-	Polyline polyline() const;
-
+	Polyline polyline() const;	
 };

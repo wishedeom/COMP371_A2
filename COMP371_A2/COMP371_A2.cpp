@@ -1,3 +1,15 @@
+// ----------------------------------------------------------------------------
+//
+//							COMP 371 - COMPUTER GRAPHICS
+//									ASSIGNMENT 2
+//								CONCORDIA UNIVERSITY
+//
+//								Author: Michael Deom
+//						  Submission Date: February 25, 2016
+//
+// ----------------------------------------------------------------------------
+
+
 // For precompiled headers
 #include "stdafx.h"
 
@@ -14,74 +26,89 @@
 #include <iostream>
 #include <vector>
 
+// C libraries
+#include <climits>
+
 // Project file inclusions
-#include "camera.h"
 #include "hermitepolynomial.h"
 #include "polyline.h"
 #include "hermitespline.h"
 #include "shaders.h"
+#include "vector_constants.h"
+#include "point_collector.h"
+#include "flatten.h"
+#include "triangle.h"
+#include "vec3_to_string.h"
 
 // Function prototypes
-void keyCallback(GLFWwindow *window, int key, int scancode, int action, int mode);
 void initialize();
-void loadShaders();
+void keyCallback(const GLFWwindow *window, const int key, const int scancode, const int action, const int mods);
+void windowSizeCallback(const GLFWwindow* window, const int width, const int height);
 std::vector<GLfloat> flatten(const std::vector<glm::vec3> vertices);
+glm::vec3 windowToWorldCoords(const glm::vec2 p);
 
+
+//----------------------------- CONSTANTS -----------------------------
 // Shader paths
-const std::string vertexShaderPath = "vertexShader.vs";
+const std::string vertexShaderPath   = "vertexShader.vs";
 const std::string fragmentShaderPath = "fragmentShader.fs";
 
-// Global variables
-GLFWwindow *window;	// Pointer to OpenGL window object
-GLuint shaderProgram;
-GLuint VAO, VBO, EBO;
+// Initial window dimensions
+const GLsizei WIDTH  = 800;
+const GLsizei HEIGHT = 800;
+
+// Control
+const GLfloat controlSensitivity = 0.1f;
+
+// Triangle speed
+const int initialSpeed = 100;
+const int speedIncremenet = 50;
+//----------------------------------------------------------------------
+
+
+//----------------------------- GLOBAL VARIABLES ----------------------
+GLFWwindow* window;		// Pointer to OpenGL window objects
+Shader shader;			// Shader program object
+
+// Transformation matrices
+glm::mat4 viewMatrix;
+glm::mat4 modelMatrix;
+glm::mat4 projMatrix;
+glm::mat4 transformationMatrix;
+
+// To hold user-provided points
+PointCollector* p_pointCollector;
+
+// Polyline
+Polyline* p_polyline;
+
+// Triangle speed
+int triangleSpeed = initialSpeed;
+
+// Done collecting points
+bool done = false;
+//----------------------------------------------------------------------
 
 int main() try
 {
-	// TEST
-	glm::vec3 p1(-1.0f, -1.0f, 0.0f);
-	glm::vec3 p2(0.0f, 1.0f, 0.0f);
-	glm::vec3 p3(-1.0f, 1.0f, 0.0f);
-
-	glm::vec3 t1(1.0f, 0.0f, 0.0f);
-	glm::vec3 t2(0.5f, 0.5f, 0.0f);
-	glm::vec3 t3(0.0f, 1.0f, 0.0f);
-
-	std::vector<glm::vec3> points;
-	points.push_back(p1);
-	points.push_back(p2);
-	points.push_back(p3);
-
-	std::vector<glm::vec3> tangents;
-	tangents.push_back(t1);
-	tangents.push_back(t2);
-	tangents.push_back(t3);
-
-	HermiteSpline spline(points, tangents);
-	auto polyline = spline.polyline();
-	// END TEST
-
-	auto coordinates = flatten(polyline.points());
-	auto indices = polyline.indices();
+	std::cout << "Please enter the number of points to interpolate: (>1)";
+	int numPoints = 0;
+	while (numPoints <= 1)
+	{
+		std::cin >> numPoints;
+	}
 
 	initialize();
 
-	glGenVertexArrays(1, &VAO);
-	glGenBuffers(1, &VBO);
-	glGenBuffers(1, &EBO);
-
-	glBindVertexArray(VAO);
-
-	glBindBuffer(GL_ARRAY_BUFFER, VBO);
-	glBufferData(GL_ARRAY_BUFFER, sizeof(coordinates[0]) * coordinates.size(), &coordinates[0], GL_STATIC_DRAW);
-
-	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
-	glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices[0]) * indices.size(), &indices[0], GL_STATIC_DRAW);
-
-	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(GLfloat), (GLvoid*)0);
-	glEnableVertexAttribArray(0);
+	PointCollector pointCollector(numPoints);
+	p_pointCollector = &pointCollector;
 	
-	glBindVertexArray(0);
+	Polyline polyline;
+	p_polyline = &polyline;
+
+	int i = 0;
+
+	Triangle triangle(0.1f, 0.05f, origin, up);
 
 	while (!glfwWindowShouldClose(window))
 	{
@@ -89,11 +116,36 @@ int main() try
 		glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
 		glClear(GL_COLOR_BUFFER_BIT);
 
-		glUseProgram(shaderProgram);
-		glBindVertexArray(VAO);
-		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
-		glDrawElements(GL_LINE_STRIP, indices.size(), GL_UNSIGNED_INT, 0);
-		glBindVertexArray(0);
+		// Use the shader program and pass the three transformation matrices to the shader program
+		transformationMatrix = projMatrix * viewMatrix * modelMatrix;
+		shader.use(transformationMatrix);
+
+		pointCollector.draw();
+		glfwSwapBuffers(window);
+
+		if (pointCollector.isFull() || done)
+		{
+			polyline = pointCollector.hermiteSpline().polyline();
+			break;
+		}
+	}
+
+	while (!glfwWindowShouldClose(window))
+	{
+		glfwPollEvents();
+		glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
+		glClear(GL_COLOR_BUFFER_BIT);
+
+		// Use the shader program and pass the three transformation matrices to the shader program
+		transformationMatrix = projMatrix * viewMatrix * modelMatrix;
+		shader.use(transformationMatrix);
+
+		polyline.draw();
+
+		triangle.snapTo(polyline, i);
+		i = (i + triangleSpeed) % INT_MAX;
+
+		triangle.draw();
 
 		glfwSwapBuffers(window);
 	}
@@ -102,65 +154,140 @@ int main() try
 
     return 0;
 }
-
 catch (std::exception& e)
 {
 	std::cout << e.what() << std::endl;
 	exit(0);
 }
 
-void keyCallback(GLFWwindow *window, const int key, const int scancode, const int action, const int mode)
+
+// Manages keyboard input
+void keyCallback(GLFWwindow *window, const int key, const int scancode, const int action, const int mods)
 {
 	switch (key)
 	{
 	case GLFW_KEY_ESCAPE:
-		glfwSetWindowShouldClose(window, GL_TRUE);
+		glfwSetWindowShouldClose(window, GL_TRUE);	// Escape key exits the application
+		break;
+	/*case GLFW_KEY_ENTER:
+		done = true;
+		break;*/
+	case GLFW_KEY_LEFT:
+		viewMatrix = glm::translate(viewMatrix, - controlSensitivity * left);
+		break;
+	case GLFW_KEY_RIGHT:
+		viewMatrix = glm::translate(viewMatrix, - controlSensitivity * right);
+		break;
+	case GLFW_KEY_UP:
+		viewMatrix = glm::translate(viewMatrix, -controlSensitivity * up);
+		break;
+	case GLFW_KEY_DOWN:
+		viewMatrix = glm::translate(viewMatrix, -controlSensitivity * down);
+		break;
+	case GLFW_KEY_EQUAL:
+		if (action == GLFW_PRESS && mods == GLFW_MOD_CONTROL)
+		{
+			triangleSpeed += speedIncremenet;
+		}
+		break;
+	case GLFW_KEY_MINUS:
+		if (action == GLFW_PRESS && mods == GLFW_MOD_CONTROL)
+		{
+			triangleSpeed -= speedIncremenet;
+		}
+		break;
+	case GLFW_KEY_P:
+		p_polyline->setPoints();
+		break;
+	case GLFW_KEY_L:
+		p_polyline->setLines();
 		break;
 	default:
 		break;
 	}
 }
 
+
+// Manages mouse click input
+void mouseButtonCallback(GLFWwindow* window, const int button, const int action, const int mods)
+{
+	switch (button)
+	{
+	case (GLFW_MOUSE_BUTTON_LEFT):
+		if (action == GLFW_PRESS)
+		{
+			double x, y;
+			glfwGetCursorPos(window, &x, &y);
+			if (!p_pointCollector->isFull())
+			{
+				p_pointCollector->collectPoint(windowToWorldCoords(glm::vec2(x, y)));
+			}
+			else
+			{
+				std::cout << "Full\n";
+			}
+		}
+		break;
+	default:
+		break;
+	}
+}
+
+
+// Manages window resizing
+void windowSizeCallback(GLFWwindow* window, const int width, const int height)
+{
+	glViewport(0, 0, width, height);
+}
+
+
+// Performs OpenGL set-up
 void initialize()
 {
+	// Initialize GLFW
 	glfwInit();
 
-	window = glfwCreateWindow(800, 600, "COMP 371 - Assignment 2", nullptr, nullptr);
+	// Create window and check for errors
+	window = glfwCreateWindow(WIDTH, HEIGHT, "COMP 371 - Assignment 2", nullptr, nullptr);
 	if (window == nullptr)
 	{
 		std::cout << "Failed to create GLFW window." << std::endl;
 		glfwTerminate();
 	}
 
+	// Make the window the current context
 	glfwMakeContextCurrent(window);
 
+	// Register callback functions
 	glfwSetKeyCallback(window, keyCallback);
+	glfwSetWindowSizeCallback(window, windowSizeCallback);
+	glfwSetMouseButtonCallback(window, mouseButtonCallback);
 
-	glewExperimental = GL_TRUE;
+	// Initialize GLEW and check for errors
+	glewExperimental = GL_TRUE;	// Required for latest version of GLEW
 	if (glewInit() != GLEW_OK)
 	{
 		std::cout << "Failed to initialize GLEW." << std::endl;
 		exit(0);
 	}
 
-	glViewport(0, 0, 800, 600);
+	// Compile and link the shaders into a shader program
+	shader = Shader(vertexShaderPath, fragmentShaderPath);
 
-	shaderProgram = makeShaderProgram(vertexShaderPath, fragmentShaderPath);
+	glPointSize(1.f);
 }
 
-void loadShaders()
+// Converts a point in window coordinates to world coordinates
+glm::vec3 windowToWorldCoords(const glm::vec2 p)
 {
-	GLuint vertexShader = glCreateShader(GL_VERTEX_SHADER);
-}
+	// Get window dimensions
+	int w, h;
+	glfwGetWindowSize(window, &w, &h);
 
-std::vector<GLfloat> flatten(const std::vector<glm::vec3> vertices)
-{
-	std::vector<GLfloat> coordinates;
-	for (auto vertex : vertices)
-	{
-		coordinates.push_back(vertex.x);
-		coordinates.push_back(vertex.y);
-		coordinates.push_back(vertex.z);
-	}
-	return coordinates;
+	// Transform to camera coordinates; we assume the z-coordinate to be 0
+	const GLfloat cameraX = 2 * p.x / w - 1;
+	const GLfloat cameraY = -(2 * p.y / h - 1);
+
+	// Transform to world coordinates by inverting the transformation matrix
+	return glm::vec3(glm::inverse(transformationMatrix) * glm::vec4(cameraX, cameraY, 0.0f, 1.0f));
 }

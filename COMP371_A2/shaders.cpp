@@ -1,11 +1,36 @@
 #include "stdafx.h"
 #include "shaders.h"
+#include "gtc/type_ptr.hpp"
 #include <iostream>
 #include <fstream>
 #include <vector>
 
+// Default constructor
+Shader::Shader() {}
+
+// Constructor
+Shader::Shader(const std::string vertexShaderPath, const std::string fragmentShaderPath)
+{
+	// Compile shaders, link them, and create the shader program
+	programID = makeShaderProgram(vertexShaderPath, fragmentShaderPath);
+
+	// Extract transformation matrix IDs from shader program
+	transformationMatrixID  = glGetUniformLocation(programID, "transformationMatrix");
+}
+
+// Accessors
+GLuint Shader::program() const { return programID; }
+
+// To use shader program
+void Shader::use(const glm::mat4& transformationMatrix) const
+{
+	glUseProgram(programID);
+	glUniformMatrix4fv(transformationMatrixID, 1, GL_FALSE, glm::value_ptr(transformationMatrix));
+}
+
+
 // Given a path, returns shader source code as a string
-std::string readSourceCode(const std::string path)
+std::string Shader::readSourceCode(const std::string path)
 {
 	// To store source code
 	std::string sourceCode;
@@ -27,7 +52,7 @@ std::string readSourceCode(const std::string path)
 	return sourceCode;
 }
 
-GLuint compileShader(const std::string path, const GLenum shaderType)
+GLuint Shader::compileShader(const std::string path, const GLenum shaderType)
 {
 	// Create shader, store id
 	const GLuint id = glCreateShader(shaderType);
@@ -55,7 +80,7 @@ GLuint compileShader(const std::string path, const GLenum shaderType)
 	return id;
 }
 
-GLuint makeShaderProgram(const std::string vertexShaderPath, const std::string fragmentShaderPath)
+GLuint Shader::makeShaderProgram(const std::string vertexShaderPath, const std::string fragmentShaderPath)
 {
 	const auto vertexShaderID = compileShader(vertexShaderPath, GL_VERTEX_SHADER);
 	const auto fragmentShaderID = compileShader(fragmentShaderPath, GL_FRAGMENT_SHADER);
