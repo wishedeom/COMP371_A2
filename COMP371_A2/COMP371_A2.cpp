@@ -169,9 +169,9 @@ void keyCallback(GLFWwindow *window, const int key, const int scancode, const in
 	case GLFW_KEY_ESCAPE:
 		glfwSetWindowShouldClose(window, GL_TRUE);	// Escape key exits the application
 		break;
-	/*case GLFW_KEY_ENTER:
+	case GLFW_KEY_ENTER:
 		done = true;
-		break;*/
+		break;
 	case GLFW_KEY_LEFT:
 		viewMatrix = glm::translate(viewMatrix, - controlSensitivity * left);
 		break;

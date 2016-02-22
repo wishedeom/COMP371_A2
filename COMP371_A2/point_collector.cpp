@@ -111,7 +111,8 @@ HermiteSpline PointCollector::hermiteSpline() const
 {
 	std::vector<glm::vec3> points;
 	std::vector<glm::vec3> tangents;
-	for (int i = 0; i < m_numPoints; i++)
+	const int actualNumPoints = m_points.size() - m_numPoints;
+	for (int i = 0; i < actualNumPoints; i++)
 	{
 		points.push_back(m_points[i]);
 		tangents.push_back(m_points[i + m_numPoints]);
