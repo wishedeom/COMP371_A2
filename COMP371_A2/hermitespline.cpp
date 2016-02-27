@@ -1,6 +1,7 @@
 #include "stdafx.h"
 #include "hermitespline.h"
 
+// Constructor
 HermiteSpline::HermiteSpline(const std::vector<glm::vec3> points, const std::vector<glm::vec3> tangents)
 {
 	if (points.size() != tangents.size())
@@ -16,8 +17,12 @@ HermiteSpline::HermiteSpline(const std::vector<glm::vec3> points, const std::vec
 	m_segments = segments;
 }
 
+
+// Accessors
 auto HermiteSpline::segments() const { return m_segments; }
 
+
+// Returns a polyline approximation of the spline
 Polyline HermiteSpline::polyline() const
 {
 	Polyline p;

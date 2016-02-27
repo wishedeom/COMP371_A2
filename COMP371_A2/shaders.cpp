@@ -5,8 +5,10 @@
 #include <fstream>
 #include <vector>
 
+
 // Default constructor
 Shader::Shader() {}
+
 
 // Constructor
 Shader::Shader(const std::string vertexShaderPath, const std::string fragmentShaderPath)
@@ -18,8 +20,10 @@ Shader::Shader(const std::string vertexShaderPath, const std::string fragmentSha
 	transformationMatrixID  = glGetUniformLocation(programID, "transformationMatrix");
 }
 
+
 // Accessors
 GLuint Shader::program() const { return programID; }
+
 
 // To use shader program
 void Shader::use(const glm::mat4& transformationMatrix) const
@@ -52,6 +56,8 @@ std::string Shader::readSourceCode(const std::string path)
 	return sourceCode;
 }
 
+
+// Compiles a shader program from text
 GLuint Shader::compileShader(const std::string path, const GLenum shaderType)
 {
 	// Create shader, store id
@@ -80,6 +86,8 @@ GLuint Shader::compileShader(const std::string path, const GLenum shaderType)
 	return id;
 }
 
+
+// Reads, compiles, and links a vertex and fragment shader, then attaches them to a shader program
 GLuint Shader::makeShaderProgram(const std::string vertexShaderPath, const std::string fragmentShaderPath)
 {
 	const auto vertexShaderID = compileShader(vertexShaderPath, GL_VERTEX_SHADER);

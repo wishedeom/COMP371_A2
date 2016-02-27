@@ -2,8 +2,10 @@
 #include "glew.h"
 #include "polyline.h"
 #include "flatten.h"
+#include <algorithm>
 
 
+// Constructor
 Polyline::Polyline()
 	:	lines(true)
 {
@@ -12,8 +14,10 @@ Polyline::Polyline()
 	glGenBuffers(1, &EBO);
 }
 
-// Accessor
+
+// Accessors
 std::vector<glm::vec3> Polyline::points() const { return m_points; }
+
 
 std::vector<GLuint> Polyline::indices() const
 {
@@ -28,11 +32,14 @@ std::vector<GLuint> Polyline::indices() const
 // Adds a polyline approximation of a single Hermite polynomial segment to the polyline
 void Polyline::pushSegment(const HermitePolynomial& p)
 {
-	const GLfloat uStep = 0.0001f;
-	for (GLfloat u = 0.0f; u <= 1.0f; u += uStep)
+	const GLfloat minDU = 0.001f;
+	const GLfloat curvatureFactor = 0.01f;
+
+	for (GLfloat u = 0.f; u <= 1.f; u += std::max(curvatureFactor / p.evaluateCurvature(u), minDU))
 	{
 		m_points.push_back(p.evaluate(u));
 	}
+
 
 	auto coordinates = flatten(points());
 	m_indices = indices();
@@ -54,18 +61,21 @@ void Polyline::pushSegment(const HermitePolynomial& p)
 }
 
 
+// Draws with line segments
 void Polyline::setLines()
 {
 	lines = true;
 }
 
 
+// Draws with points
 void Polyline::setPoints()
 {
 	lines = false;
 }
 
 
+// Draws the polyline
 void Polyline::draw() const
 {
 	glBindVertexArray(VAO);

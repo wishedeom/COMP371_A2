@@ -22,4 +22,10 @@ public:
 	// Evaluates the polynomial function with the given parameter
 	glm::vec3 evaluate(const GLfloat u) const;
 
+	// All used to assist in computing the curvature
+	glm::vec3 evaluateDerivative(const GLfloat u) const;
+	glm::vec3 HermitePolynomial::evaluateSecondDerivative(const GLfloat u) const;
+	glm::vec3 HermitePolynomial::evaluateDerivativeOfUnitTangent(const GLfloat u) const;
+	GLfloat HermitePolynomial::evaluateDerivativeOfNormedDerivative(const GLfloat u) const;
+	GLfloat HermitePolynomial::evaluateCurvature(const GLfloat u) const;
 };

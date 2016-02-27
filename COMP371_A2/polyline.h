@@ -1,11 +1,10 @@
 #pragma once
-
 #include <vector>
 #include "glm.hpp"
 #include "glfw3.h"
 #include "hermitepolynomial.h"
 
-// Represents a polyline
+// Represents a polyline, which can be drawn
 class Polyline
 {
 	std::vector<glm::vec3> m_points;

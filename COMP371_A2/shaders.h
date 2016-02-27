@@ -1,9 +1,11 @@
 #pragma once
-
 #include "glew.h"
 #include <string>
 #include "gtc/matrix_transform.hpp"	// Matrix types
 
+// Manages everyhting to do with OpenGL shaders.
+// Reads the source code from a text file, compiles and links the shaders, makes the shader program,
+// and allows the shader program to be used with a specific transformation matrix.
 class Shader
 {
 	GLuint programID;

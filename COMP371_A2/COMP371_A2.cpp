@@ -5,7 +5,7 @@
 //								CONCORDIA UNIVERSITY
 //
 //								Author: Michael Deom
-//						  Submission Date: February 25, 2016
+//						  Submission Date: March 1, 2016
 //
 // ----------------------------------------------------------------------------
 
@@ -44,7 +44,6 @@
 void initialize();
 void keyCallback(const GLFWwindow *window, const int key, const int scancode, const int action, const int mods);
 void windowSizeCallback(const GLFWwindow* window, const int width, const int height);
-std::vector<GLfloat> flatten(const std::vector<glm::vec3> vertices);
 glm::vec3 windowToWorldCoords(const glm::vec2 p);
 
 
@@ -61,8 +60,8 @@ const GLsizei HEIGHT = 800;
 const GLfloat controlSensitivity = 0.1f;
 
 // Triangle speed
-const int initialSpeed = 100;
-const int speedIncremenet = 50;
+const int initialSpeed = 50;
+const int speedIncremenet = 5;
 //----------------------------------------------------------------------
 
 
@@ -88,102 +87,90 @@ int triangleSpeed = initialSpeed;
 // Done collecting points
 bool doneCollecting = false;
 
-// Done program
-bool done = false;
+// True for collecting points, false for drawing splines
+bool collectMode = true;
 
 bool reset = false;
 //----------------------------------------------------------------------
 
+
+//------------------------- MAIN ---------------------------------------
+
 int main() try
 {
-	initialize();
+	initialize();	// Set up OpenGL context
 
-	while (!done)
+	std::cout << "Please enter the number of points to interpolate: (>1)";
+	int numPoints = 0;
+	while (numPoints <= 1)
 	{
-		reset = false;
-
-		std::cout << "Please enter the number of points to interpolate: (>1)";
-		int numPoints = 0;
-		while (numPoints <= 1)
-		{
-			std::cin >> numPoints;
-		}
-
-		PointCollector pointCollector(numPoints);
-		p_pointCollector = &pointCollector;
-
-		Polyline polyline;
-		p_polyline = &polyline;
-
-		int i = 0;
-
-		Triangle triangle(0.1f, 0.05f, origin, up);
-
-		while (!glfwWindowShouldClose(window))
-		{
-			glfwPollEvents();
-			glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
-			glClear(GL_COLOR_BUFFER_BIT);
-
-			// Use the shader program and pass the three transformation matrices to the shader program
-			transformationMatrix = projMatrix * viewMatrix * modelMatrix;
-			shader.use(transformationMatrix);
-
-			pointCollector.draw();
-			glfwSwapBuffers(window);
-
-			if (pointCollector.isFull() || doneCollecting)
-			{
-				if (pointCollector.hasMinNumPoints())
-				{
-					polyline = pointCollector.hermiteSpline().polyline();
-					break;
-				}
-				else
-				{
-					doneCollecting = false;
-				}
-			}
-
-			if (reset)
-			{
-				break;
-			}
-		}
-
-		if (reset)
-		{
-			continue;
-		}
-
-		while (!glfwWindowShouldClose(window))
-		{
-			glfwPollEvents();
-			glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
-			glClear(GL_COLOR_BUFFER_BIT);
-
-			// Use the shader program and pass the three transformation matrices to the shader program
-			transformationMatrix = projMatrix * viewMatrix * modelMatrix;
-			shader.use(transformationMatrix);
-
-			polyline.draw();
-
-			triangle.snapTo(polyline, i);
-			i = (i + triangleSpeed) % INT_MAX;
-
-			triangle.draw();
-
-			glfwSwapBuffers(window);
-
-			if (reset)
-			{
-				break;
-			}
-		}
+		std::cin >> numPoints;
 	}
 
-	glfwTerminate();
+	PointCollector pointCollector(numPoints);
+	p_pointCollector = &pointCollector;
 
+	Polyline polyline;
+	p_polyline = &polyline;
+
+	int i = 0;
+
+	Triangle triangle(0.1f, 0.05f, origin, up);
+
+	while (!glfwWindowShouldClose(window))
+	{
+		if (reset)	// For resetting the program
+		{
+			reset = false;
+			std::cout << "Please enter the number of points to interpolate: (>1)";
+			int numPoints = 0;
+			while (numPoints <= 1)
+			{
+				std::cin >> numPoints;
+			}
+			pointCollector.clear(numPoints);
+		}
+
+		// Pre-draw preparation
+		glfwPollEvents();
+		glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
+		glClear(GL_COLOR_BUFFER_BIT);
+
+		// Use the shader program and pass the three transformation matrices to the shader program
+		transformationMatrix = projMatrix * viewMatrix * modelMatrix;
+		shader.use(transformationMatrix);
+
+		// Check to see if there are enough points to create a spline
+		if (pointCollector.isFull() || doneCollecting)
+		{
+			if (pointCollector.hasMinNumPoints())
+			{
+				polyline = pointCollector.hermiteSpline().polyline();
+				collectMode = false;
+			}
+			else
+			{
+				doneCollecting = false;
+			}
+		}
+
+		if (collectMode)	// While collecting
+		{
+			pointCollector.draw();
+		}
+		else				// After collecting
+		{
+			polyline.draw();
+			triangle.snapTo(polyline, i);
+			i = (i + triangleSpeed) % INT_MAX;
+			triangle.draw();
+		}
+
+		glfwSwapBuffers(window);	// Swap buffers
+	}
+
+	// End program
+	glfwTerminate();
     return 0;
 }
 catch (std::exception& e)
@@ -200,15 +187,15 @@ void keyCallback(GLFWwindow *window, const int key, const int scancode, const in
 	{
 	case GLFW_KEY_ESCAPE:
 		glfwSetWindowShouldClose(window, GL_TRUE);	// Escape key exits the application
-		done = true;
 		break;
-	case GLFW_KEY_BACKSPACE:
+	case GLFW_KEY_BACKSPACE:	// Backspace resets
 		reset = true;
+		collectMode = true;
 		break;
-	case GLFW_KEY_ENTER:
+	case GLFW_KEY_ENTER:	// Enter prematurely ends point collection
 		doneCollecting = true;
 		break;
-	case GLFW_KEY_LEFT:
+	case GLFW_KEY_LEFT:	// Arrow keys translate camera
 		viewMatrix = glm::translate(viewMatrix, - controlSensitivity * left);
 		break;
 	case GLFW_KEY_RIGHT:
@@ -220,7 +207,7 @@ void keyCallback(GLFWwindow *window, const int key, const int scancode, const in
 	case GLFW_KEY_DOWN:
 		viewMatrix = glm::translate(viewMatrix, -controlSensitivity * down);
 		break;
-	case GLFW_KEY_EQUAL:
+	case GLFW_KEY_EQUAL: // Plus and minus increase and decrease triangle speed
 		if (action == GLFW_PRESS && mods == GLFW_MOD_CONTROL)
 		{
 			triangleSpeed += speedIncremenet;
@@ -232,7 +219,7 @@ void keyCallback(GLFWwindow *window, const int key, const int scancode, const in
 			triangleSpeed -= speedIncremenet;
 		}
 		break;
-	case GLFW_KEY_P:
+	case GLFW_KEY_P:	// P and L set point/line draw mode
 		p_polyline->setPoints();
 		break;
 	case GLFW_KEY_L:

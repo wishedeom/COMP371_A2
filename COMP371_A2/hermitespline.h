@@ -1,5 +1,4 @@
 #pragma once
-
 #include <vector>
 #include "hermitepolynomial.h"
 #include "polyline.h"

@@ -9,6 +9,7 @@
 
 const float pi = 3.1415926535897932385f;
 
+// Constructor
 Triangle::Triangle(const GLfloat length, const GLfloat width, const glm::vec3 centre, const glm::vec3 orientation)
 	:	m_length(length)
 	,	m_width(width)
@@ -19,7 +20,7 @@ Triangle::Triangle(const GLfloat length, const GLfloat width, const glm::vec3 ce
 	set(centre, orientation);
 }
 
-
+// Sets new position and orientation
 void Triangle::set(const glm::vec3 centre, const glm::vec3 orientation)
 {
 	m_centre = centre;
@@ -31,7 +32,7 @@ void Triangle::set(const glm::vec3 centre, const glm::vec3 orientation)
 
 	const GLfloat rotAngle = angle(up, orientation);
 
-	// rotate, translate back to new position
+	// Rotate then translate to new position
 	glm::mat4 transformation;
 	transformation = glm::translate(transformation, glm::vec3(centre));
 	transformation = glm::rotate(transformation, -rotAngle, backward);
@@ -64,11 +65,13 @@ void Triangle::set(const glm::vec3 centre, const glm::vec3 orientation)
 }
 
 
+// Orients the triangle pointing along a line segment
 void Triangle::orient(const glm::vec3 start, const glm::vec3 end)
 {
 	set(start, end - start);
 }
 
+// Orients the triangle to a specific line segment of a polyline
 void Triangle::snapTo(const Polyline& polyline, const int segment)
 {
 	const auto size = polyline.points().size();
@@ -77,6 +80,8 @@ void Triangle::snapTo(const Polyline& polyline, const int segment)
 	orient(start, end);
 }
 
+
+// Draws the triangle
 void Triangle::draw() const
 {
 	glBindVertexArray(VAO);
@@ -84,6 +89,8 @@ void Triangle::draw() const
 	glBindVertexArray(0);
 }
 
+
+// Gets the (signed) angle between two vectors in the x-y plane
 GLfloat angle(const glm::vec3 reference, const glm::vec3 orientation)
 {
 	const glm::vec3 nOrientation = glm::normalize(orientation);
@@ -93,6 +100,8 @@ GLfloat angle(const glm::vec3 reference, const glm::vec3 orientation)
 	return acos(dotProduct) * signum(crossProduct.z);
 }
 
+
+// Returns the sign of a float
 GLfloat signum(const GLfloat x)
 {
 	GLfloat sign;

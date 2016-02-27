@@ -1,6 +1,8 @@
 #pragma once
-
 #include "glm.hpp"
+
+// Holds directional vector constants
+
 
 // Origin
 const glm::vec3 origin(0.0f, 0.0f, 0.0f);

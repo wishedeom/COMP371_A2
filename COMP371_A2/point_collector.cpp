@@ -20,7 +20,7 @@ PointCollector::PointCollector(const int numPoints)
 }
 
 
-// Adds points, then tangents, until both are full. Returns true if and only if there is still room for points or tangents.
+// Adds points, then tangents, until both are full
 void PointCollector::collectPoint(const glm::vec3 point)
 {
 	if (m_points.size() < m_numPoints)
@@ -34,12 +34,15 @@ void PointCollector::collectPoint(const glm::vec3 point)
 }
 
 
+// Adds a point to the collector
 void PointCollector::addPoint(const glm::vec3 point)
 {
 	m_points.push_back(point);
 	updatePointsVBO();
 }
 
+
+// Adds a tangent endpoint to the collector
 void PointCollector::addTangent(const glm::vec3 point)
 {
 	m_points.push_back(point);
@@ -48,6 +51,7 @@ void PointCollector::addTangent(const glm::vec3 point)
 }
 
 
+// Updates the VBO for drawing points
 void PointCollector::updatePointsVBO()
 {
 	m_pointCoordinates = flatten(m_points);
@@ -55,8 +59,11 @@ void PointCollector::updatePointsVBO()
 	glBindVertexArray(pointsVAO);
 
 	glBindBuffer(GL_ARRAY_BUFFER, pointsVBO);
-	glBufferData(GL_ARRAY_BUFFER, sizeof(m_pointCoordinates[0]) * m_pointCoordinates.size(), nullptr, GL_STATIC_DRAW);
-	glBufferData(GL_ARRAY_BUFFER, sizeof(m_pointCoordinates[0]) * m_pointCoordinates.size(), &m_pointCoordinates[0], GL_STATIC_DRAW);
+	glBufferData(GL_ARRAY_BUFFER, 0, nullptr, GL_STATIC_DRAW);
+	if (m_pointCoordinates.size() > 0)
+	{
+		glBufferData(GL_ARRAY_BUFFER, sizeof(m_pointCoordinates[0]) * m_pointCoordinates.size(), &m_pointCoordinates[0], GL_STATIC_DRAW);
+	}
 
 	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(GLfloat), (GLvoid*)0);
 	glEnableVertexAttribArray(0);
@@ -65,6 +72,7 @@ void PointCollector::updatePointsVBO()
 }
 
 
+// Updates the VBO for drawing tangent line segments
 void PointCollector::updateTangentVBO()
 {
 	for (int i = 0; i < m_points.size() - m_numPoints; i++)
@@ -77,12 +85,18 @@ void PointCollector::updateTangentVBO()
 	glBindVertexArray(tangentVAO);
 
 	glBindBuffer(GL_ARRAY_BUFFER, tangentVBO);
-	glBufferData(GL_ARRAY_BUFFER, sizeof m_tangentCoordinates[0] * m_tangentCoordinates.size(), nullptr, GL_STATIC_DRAW);
-	glBufferData(GL_ARRAY_BUFFER, sizeof m_tangentCoordinates[0] * m_tangentCoordinates.size(), &m_tangentCoordinates[0], GL_STATIC_DRAW);
+	glBufferData(GL_ARRAY_BUFFER, 0, nullptr, GL_STATIC_DRAW);
+	if (m_tangentCoordinates.size() > 0)
+	{
+		glBufferData(GL_ARRAY_BUFFER, sizeof m_tangentCoordinates[0] * m_tangentCoordinates.size(), &m_tangentCoordinates[0], GL_STATIC_DRAW);
+	}
 
 	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, tangentEBO);
-	glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof m_indices[0] * m_indices.size(), nullptr, GL_STATIC_DRAW);
-	glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof m_indices[0] * m_indices.size(), &m_indices[0], GL_STATIC_DRAW);
+	glBufferData(GL_ELEMENT_ARRAY_BUFFER, 0, nullptr, GL_STATIC_DRAW);
+	if (m_indices.size() > 0)
+	{
+		glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof m_indices[0] * m_indices.size(), &m_indices[0], GL_STATIC_DRAW);
+	}
 
 	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(GLfloat), (GLvoid*)0);
 	glEnableVertexAttribArray(0);
@@ -91,18 +105,21 @@ void PointCollector::updateTangentVBO()
 }
 
 
+// Returns true if and only if the point collector is full
 bool PointCollector::isFull() const
 {
 	return m_points.size() >= 2 * m_numPoints;
 }
 
 
+// Returns true if and obly if the point collector has at least two points and two tangent endpoints
 bool PointCollector::hasMinNumPoints() const
 {
 	return m_points.size() >= m_numPoints + 2;
 }
 
 
+// Draws all currently collected points and tangent line segments
 void PointCollector::draw() const
 {
 	glBindVertexArray(pointsVAO);
@@ -113,6 +130,7 @@ void PointCollector::draw() const
 }
 
 
+// Produces a Hermite spline from the collected points and tangents
 HermiteSpline PointCollector::hermiteSpline() const
 {
 	std::vector<glm::vec3> points;
@@ -124,4 +142,15 @@ HermiteSpline PointCollector::hermiteSpline() const
 		tangents.push_back(m_points[i + m_numPoints]);
 	}
 	return HermiteSpline(points, tangents);
+}
+
+
+// Clears all currently collected points and tangents
+void PointCollector::clear(const int numPoints)
+{
+	m_numPoints = numPoints;
+	m_points.clear();
+	m_points.reserve(numPoints);
+	updatePointsVBO();
+	updateTangentVBO();
 }

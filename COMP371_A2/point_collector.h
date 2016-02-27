@@ -1,5 +1,4 @@
 #pragma once
-
 #include "glew.h"
 #include <vector>
 #include "glm.hpp"
@@ -7,9 +6,10 @@
 #include "flatten.h"
 #include "hermitespline.h"
 
+// Manages user input of points, including drawing them
 class PointCollector
 {
-	const int m_numPoints;
+	int m_numPoints;
 	std::vector<glm::vec3> m_points;
 	std::vector<GLfloat> m_pointCoordinates;
 	std::vector<GLfloat> m_tangentCoordinates;
@@ -43,4 +43,6 @@ public:
 	void draw() const;
 
 	HermiteSpline hermiteSpline() const;
+
+	void clear(const int numPoints);
 };
