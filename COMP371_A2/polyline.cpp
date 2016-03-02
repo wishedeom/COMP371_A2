@@ -3,15 +3,20 @@
 #include "polyline.h"
 #include "flatten.h"
 #include <algorithm>
+#include <exception>
 
 
 // Constructor
-Polyline::Polyline()
+Polyline::Polyline(const bool drawable)
 	:	lines(true)
+	,	m_drawable(drawable)
 {
-	glGenVertexArrays(1, &VAO);
-	glGenBuffers(1, &VBO);
-	glGenBuffers(1, &EBO);
+	if (drawable)
+	{
+		glGenVertexArrays(1, &VAO);
+		glGenBuffers(1, &VBO);
+		glGenBuffers(1, &EBO);
+	}
 }
 
 
@@ -40,24 +45,26 @@ void Polyline::pushSegment(const HermitePolynomial& p)
 		m_points.push_back(p.evaluate(u));
 	}
 
+	if (m_drawable)
+	{
+		auto coordinates = flatten(points());
+		m_indices = indices();
 
-	auto coordinates = flatten(points());
-	m_indices = indices();
+		glBindVertexArray(VAO);
 
-	glBindVertexArray(VAO);
+		glBindBuffer(GL_ARRAY_BUFFER, VBO);
+		glBufferData(GL_ARRAY_BUFFER, sizeof coordinates[0] * coordinates.size(), nullptr, GL_STATIC_DRAW);
+		glBufferData(GL_ARRAY_BUFFER, sizeof coordinates[0] * coordinates.size(), &coordinates[0], GL_STATIC_DRAW);
 
-	glBindBuffer(GL_ARRAY_BUFFER, VBO);
-	glBufferData(GL_ARRAY_BUFFER, sizeof coordinates[0] * coordinates.size(), nullptr, GL_STATIC_DRAW);
-	glBufferData(GL_ARRAY_BUFFER, sizeof coordinates[0] * coordinates.size(), &coordinates[0], GL_STATIC_DRAW);
+		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
+		glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof m_indices[0] * m_indices.size(), nullptr, GL_STATIC_DRAW);
+		glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof m_indices[0] * m_indices.size(), &m_indices[0], GL_STATIC_DRAW);
 
-	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
-	glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof m_indices[0]  * m_indices.size(), nullptr, GL_STATIC_DRAW);
-	glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof m_indices[0]  * m_indices.size(), &m_indices[0], GL_STATIC_DRAW);
+		glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(GLfloat), (GLvoid*)0);
+		glEnableVertexAttribArray(0);
 
-	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(GLfloat), (GLvoid*)0);
-	glEnableVertexAttribArray(0);
-
-	glBindVertexArray(0);
+		glBindVertexArray(0);
+	}
 }
 
 
@@ -78,6 +85,11 @@ void Polyline::setPoints()
 // Draws the polyline
 void Polyline::draw() const
 {
+	if (!m_drawable)
+	{
+		throw std::exception("Polyline is not drawable.");
+	}
+
 	glBindVertexArray(VAO);
 	if (lines)
 	{

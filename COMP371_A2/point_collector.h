@@ -37,12 +37,7 @@ public:
 
 	// Checks if the point collector has collected all required points
 	bool isFull() const;
-
 	bool hasMinNumPoints() const;
-
 	void draw() const;
-
 	HermiteSpline hermiteSpline() const;
-
-	void clear(const int numPoints);
 };

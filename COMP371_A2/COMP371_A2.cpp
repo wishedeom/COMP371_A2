@@ -107,10 +107,9 @@ int main() try
 		std::cin >> numPoints;
 	}
 
-	PointCollector pointCollector(numPoints);
-	p_pointCollector = &pointCollector;
+	p_pointCollector = new PointCollector(numPoints);
 
-	Polyline polyline;
+	Polyline polyline(true);
 	p_polyline = &polyline;
 
 	int i = 0;
@@ -128,7 +127,8 @@ int main() try
 			{
 				std::cin >> numPoints;
 			}
-			pointCollector.clear(numPoints);
+			delete p_pointCollector;
+			p_pointCollector = new PointCollector(numPoints);
 		}
 
 		// Pre-draw preparation
@@ -141,11 +141,11 @@ int main() try
 		shader.use(transformationMatrix);
 
 		// Check to see if there are enough points to create a spline
-		if (pointCollector.isFull() || doneCollecting)
+		if (p_pointCollector->isFull() || doneCollecting)
 		{
-			if (pointCollector.hasMinNumPoints())
+			if (p_pointCollector->hasMinNumPoints())
 			{
-				polyline = pointCollector.hermiteSpline().polyline();
+				polyline = p_pointCollector->hermiteSpline().polyline();
 				collectMode = false;
 			}
 			else
@@ -156,7 +156,7 @@ int main() try
 
 		if (collectMode)	// While collecting
 		{
-			pointCollector.draw();
+			p_pointCollector->draw();
 		}
 		else				// After collecting
 		{
@@ -171,6 +171,7 @@ int main() try
 
 	// End program
 	glfwTerminate();
+	delete p_pointCollector;
     return 0;
 }
 catch (std::exception& e)
@@ -297,7 +298,7 @@ void initialize()
 	// Compile and link the shaders into a shader program
 	shader = Shader(vertexShaderPath, fragmentShaderPath);
 
-	glPointSize(1.f);
+	glPointSize(2.f);
 }
 
 // Converts a point in window coordinates to world coordinates

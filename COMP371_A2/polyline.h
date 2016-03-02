@@ -11,9 +11,10 @@ class Polyline
 	std::vector<GLuint> m_indices;
 	GLuint VAO, VBO, EBO;
 	bool lines; // True if drawing as lines, false if as points
+	bool m_drawable;
 
 public:
-	Polyline();
+	Polyline(const bool drawable);
 	std::vector<glm::vec3> points() const;
 	std::vector<GLuint> indices() const;
 	void pushSegment(const HermitePolynomial& p);
@@ -21,5 +22,3 @@ public:
 	void setLines();
 	void setPoints();
 };
-
-

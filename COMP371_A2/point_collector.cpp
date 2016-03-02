@@ -143,14 +143,3 @@ HermiteSpline PointCollector::hermiteSpline() const
 	}
 	return HermiteSpline(points, tangents);
 }
-
-
-// Clears all currently collected points and tangents
-void PointCollector::clear(const int numPoints)
-{
-	m_numPoints = numPoints;
-	m_points.clear();
-	m_points.reserve(numPoints);
-	updatePointsVBO();
-	updateTangentVBO();
-}

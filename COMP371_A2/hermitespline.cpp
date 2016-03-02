@@ -23,12 +23,18 @@ auto HermiteSpline::segments() const { return m_segments; }
 
 
 // Returns a polyline approximation of the spline
-Polyline HermiteSpline::polyline() const
+Polyline HermiteSpline::polyline(const bool drawable) const
 {
-	Polyline p;
+	Polyline p(drawable);
 	for (auto segment : m_segments)
 	{
 		p.pushSegment(segment);
 	}
 	return p;
+}
+
+
+Polyline HermiteSpline::polyline() const
+{
+	return polyline(true);
 }
